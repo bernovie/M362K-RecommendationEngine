@@ -1,6 +1,7 @@
 from surprise import SVD
 from surprise import SVDpp
 import os
+import csv
 from surprise import dump
 from collections import defaultdict
 from surprise import Dataset
@@ -24,9 +25,9 @@ def read_item_names():
     file_name = './ml-latest-small/movies.csv'
     rid_to_name = {}
     name_to_rid = {}
-    with io.open(file_name, 'r', encoding='ISO-8859-1') as f:
-        for line in f:
-            line = line.split(',')
+    with open(file_name, 'r') as f:
+        reader = csv.reader(f, dialect="excel")
+        for line in reader:
             rid_to_name[line[0]] = line[1]
             name_to_rid[line[1]] = line[0]
 
@@ -42,7 +43,7 @@ def get_top_n(predictions, n=10):
             is 10.
 
     Returns:
-    A dict where keys are user (raw) ids and values are lists of tuples:
+        A dict where keys are user (raw) ids and values are lists of tuples:
         [(raw item id, rating estimation), ...] of size n.
     '''
 
@@ -69,13 +70,15 @@ data = Dataset.load_from_file('./ml-latest-small/ratings.csv', reader=reader)
 trainset = data.build_full_trainset()
 
 testset = trainset.build_anti_testset()
+#testset = trainset.build_anti_testset()
 
 #trainset, testset = train_test_split(data, test_size=.3)
 
 # We'll use the famous SVD algorithm.
 sim_options = {'name':'cosine', 'user_based':True, 'min_support':2}
-#algo = KNNBasic(k=40, min_k=2, sim_options=sim_options)
-algo = SVDpp()
+algo = KNNBasic(k=40, min_k=2, sim_options=sim_options)
+
+#algo = SVDpp()
 
 # Train the algorithm on the trainset, and predict ratings for the testset
 algo.fit(trainset)
@@ -85,11 +88,28 @@ rid_to_name, name_to_rid = read_item_names()
 
 top_n = get_top_n(predictions, n=8)
 
+user_predictions_table = open("recommendations.csv", "w+")
+user_predictions_table.write("userId,movieId,movieName,prediction,trueValue\n")
+user_predictions_readable = open("recommendations_readable.txt", "w+")
+writer = csv.writer(user_predictions_table)
+
+# Write the predictions into a human readable format and into a .csv file for analysis
 for uid, user_ratings in top_n.items():
-    print"__________UID:", uid, "____________"
+    line1 = "__________UID: "+str(uid)+"____________\n"
+    user_predictions_readable.write(line1)
     for iid, estimation, true_r in user_ratings:
-        print '[',iid, rid_to_name[str(iid)],'|',estimation,'|',true_r,'|',str(round(percentConfidence(estimation, true_r), 3))+"%",']'
-    print("")
+        movie_name = str((rid_to_name[str(iid)]))
+        # print(movie_name)
+        part1 = '['+str(iid)+" "+str(movie_name)+'|'+str(estimation)
+        part2 = '|'+str(true_r)+'|'+str(round(percentConfidence(estimation, true_r), 3))+"%"+']\n'
+        line2 = part1 + part2
+        user_predictions_readable.write(line2)
+        data = [[uid, iid, movie_name, round(estimation, 3), true_r]]
+        writer.writerows(data)
+    user_predictions_readable.write(" \n")
+
+user_predictions_readable.close()
+user_predictions_table.close()
 
 #print("Top 10 movies from user 130", getUserTop(top_n,'130'))
 #print("Top N recommendations ", top_n)
