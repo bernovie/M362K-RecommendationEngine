@@ -22,7 +22,7 @@ def read_item_names():
     mappings to convert raw ids into movie names and movie names into raw ids.
     """
 
-    file_name = './ml-latest/movies.csv'
+    file_name = './movies.csv'
     rid_to_name = {}
     name_to_rid = {}
     with open(file_name, 'r') as f:
