@@ -128,9 +128,9 @@ rid_to_name, name_to_rid = read_item_names()
 
 top_n = get_top_n(predictions, n=8)
 
-user_predictions_table = open("recommendations.csv", "w+")
+user_predictions_table = open("recommendations2.csv", "w+")
 user_predictions_table.write("userId,movieId,movieName,prediction,trueValue\n")
-user_predictions_readable = open("recommendations_readable.txt", "w+")
+user_predictions_readable = open("recommendations_readable2.txt", "w+")
 writer = csv.writer(user_predictions_table)
 
 # Write the predictions into a human readable format and into a .csv file for analysis
