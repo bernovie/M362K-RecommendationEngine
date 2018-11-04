@@ -15,6 +15,9 @@ from surprise.model_selection import GridSearchCV
 import io
 
 def percentConfidence(prediction, actual):
+    """
+    Returns the percent that a prediction is to the actual rating done by the user
+    """
     return (10 - abs(2*(actual-prediction)))*10
 
 def read_item_names():
@@ -34,7 +37,11 @@ def read_item_names():
     return rid_to_name, name_to_rid
 
 def precision_recall_at_k(predictions, k=10, threshold=3.5):
-    '''Return precision and recall at k metrics for each user.'''
+    '''
+    Return precision and recall at k metrics for each user.
+        Precision = Proportion of recommended items that are relevant
+        Recall = Proportion of relevant items that are recommended
+    '''
 
     # First map the predictions to each user.
     user_est_true = defaultdict(list)
@@ -100,6 +107,16 @@ def get_top_n(predictions, n=10):
     return top_n
 
 def getUserTop(top_n, user):
+    """
+    Get the top k recommendations for a given `user`
+
+    `top_n:` a dictionary of the top k reccommendations for a given user
+
+    `user:` internal user id(uid) used in the datasets like in ml-latest-parsed.csv
+
+    Returns:
+        a list containing the top k reccomendations for the given user
+    """
     matches = [ [iid for (iid, _) in user_ratings] for uid,user_ratings in top_n.items() if uid == user]
     return matches
 
@@ -115,7 +132,7 @@ testset = trainset.build_anti_testset()
 #trainset, testset = train_test_split(data, test_size=.3)
 
 # We'll use the famous SVD algorithm.
-sim_options = {'name':'cosine', 'user_based':True, 'min_support':2}
+#sim_options = {'name':'cosine', 'user_based':True, 'min_support':2}
 #algo = KNNBasic(k=40, min_k=2, sim_options=sim_options)
 
 algo = SVDpp()
