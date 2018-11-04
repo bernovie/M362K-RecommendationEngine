@@ -22,7 +22,7 @@ def read_item_names():
     mappings to convert raw ids into movie names and movie names into raw ids.
     """
 
-    file_name = './ml-latest-small/movies.csv'
+    file_name = './ml-latest/movies.csv'
     rid_to_name = {}
     name_to_rid = {}
     with open(file_name, 'r') as f:
@@ -32,6 +32,46 @@ def read_item_names():
             name_to_rid[line[1]] = line[0]
 
     return rid_to_name, name_to_rid
+
+def precision_recall_at_k(predictions, k=10, threshold=3.5):
+    '''Return precision and recall at k metrics for each user.'''
+
+    # First map the predictions to each user.
+    user_est_true = defaultdict(list)
+    for uid, _, true_r, est, _ in predictions:
+        user_est_true[uid].append((est, true_r))
+
+    precisions = dict()
+    recalls = dict()
+    for uid, user_ratings in user_est_true.items():
+
+        # Sort user ratings by estimated value
+        user_ratings.sort(key=lambda x: x[0], reverse=True)
+
+        # Number of relevant items
+        n_rel = sum((true_r >= threshold) for (_, true_r) in user_ratings[:k])
+        # print("N_rel: "+str(n_rel))
+
+        # Number of recommended items in top k
+        n_rec_k = sum((est >= threshold) for (est, _) in user_ratings[:k])
+        # print("N_rec_k: "+str(n_rec_k))
+
+        # Number of relevant and recommended items in top k
+        n_rel_and_rec_k = sum(((true_r >= threshold) and (est >= threshold))
+                              for (est, true_r) in user_ratings[:k])
+        # print("n_rel_and_rec_k: "+str(n_rel_and_rec_k))
+
+        # Precision@K: Proportion of recommended items that are relevant
+        precisions[uid] = float(n_rel_and_rec_k) / float(n_rec_k) if n_rec_k != 0 else 1
+
+        # print("Precisions: "+str(precisions[uid]))
+
+        # Recall@K: Proportion of relevant items that are recommended
+        recalls[uid] = float(n_rel_and_rec_k) / float(n_rel) if n_rel != 0 else 1
+
+        # print("Recall: "+str(recalls[uid]))
+
+    return precisions, recalls
 
 def get_top_n(predictions, n=10):
     '''Return the top-N recommendation for each user from a set of predictions.
@@ -65,7 +105,7 @@ def getUserTop(top_n, user):
 
 # Load the movielens-100k dataset (download it if needed),
 reader = Reader(line_format='user item rating timestamp', sep=',', rating_scale=(0.5,5), skip_lines=1 )
-data = Dataset.load_from_file('./ml-latest-small/ratings.csv', reader=reader)
+data = Dataset.load_from_file('./ml-latest-parsed.csv', reader=reader)
 
 trainset = data.build_full_trainset()
 
@@ -76,9 +116,9 @@ testset = trainset.build_anti_testset()
 
 # We'll use the famous SVD algorithm.
 sim_options = {'name':'cosine', 'user_based':True, 'min_support':2}
-algo = KNNBasic(k=40, min_k=2, sim_options=sim_options)
+#algo = KNNBasic(k=40, min_k=2, sim_options=sim_options)
 
-#algo = SVDpp()
+algo = SVDpp()
 
 # Train the algorithm on the trainset, and predict ratings for the testset
 algo.fit(trainset)
@@ -119,6 +159,9 @@ user_predictions_table.close()
 # Then compute RMSE
 accuracy.rmse(predictions)
 accuracy.mae(predictions)
+precisions, recalls = precision_recall_at_k(predictions, k=5, threshold=4.0)
+print("The precision was: "+str(sum(precision for precision in precisions.values())/len(precisions)))
+print("The recall was:"+str(sum(recall for recall in recalls.values())/len(precisions)))
 
 # Dump algorithm and reload it.
 #file_name = os.path.expanduser('~/.surprise_data/dump_file')
