@@ -132,8 +132,9 @@ testset = trainset.build_anti_testset()
 #trainset, testset = train_test_split(data, test_size=.3)
 
 # We'll use the famous SVD algorithm.
-#sim_options = {'name':'cosine', 'user_based':True, 'min_support':2}
-#algo = KNNBasic(k=40, min_k=2, sim_options=sim_options)
+print("Creating Model")
+sim_options = {'name':'cosine', 'user_based':True, 'min_support':2}
+algo = KNNBasic(k=40, min_k=2, sim_options=sim_options)
 
 algo = SVDpp()
 
